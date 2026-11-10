@@ -117,14 +117,14 @@ body[data-page="home"] .next-race-card{margin-bottom:16px}
 .group-standings-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse}
 .group-standings-table col.position-column{width:34px}
 .group-standings-table col.points-column{width:48px}
-.group-standings-table col.deduction-column{width:78px}
+
 .group-standings-table col.total-column{width:58px}
 .group-standings-table th,.group-standings-table td{padding:5px 5px;font-size:9px;line-height:1.2}
 .group-standings-table th{font-size:7px;letter-spacing:.06em}
 .group-standings-table td:first-child,.group-standings-table th:first-child{text-align:center}
 .group-standings-table th:nth-child(n+3),.group-standings-table td:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .group-standings-table th:nth-child(5){white-space:normal;line-height:1.15}
-.group-standings-table td.deduction-points{color:#f09283;font-weight:800}
+
 .group-standings-table .group-team-name{font-size:10px;line-height:1.2;overflow-wrap:anywhere;white-space:normal}
 .group-standings-table th:last-child,.group-standings-table td:last-child{color:var(--gold-bright);font-weight:700}
 .group-standings-table tr.standings-zone-heading td{padding:8px 7px 5px;border:0;color:#f1d48e;font:700 9px/1.25 var(--mono);letter-spacing:.06em;text-align:left}
@@ -133,13 +133,18 @@ body[data-page="home"] .next-race-card{margin-bottom:16px}
 .group-standings-table tr.provisional-drop-zone td{background:rgba(130,43,38,.13);border-bottom-color:rgba(208,103,88,.2)}
 .group-standings-table tr.provisional-drop-zone td:first-child{color:#f09b8e;font-weight:800}
 .group-standings-table tr.drop-zone-divider td{border-top:2px solid var(--gold)!important}
+.group-b-standings-card{overflow-x:auto;overscroll-behavior-x:contain}
+.group-b-standings-table{min-width:690px}
+
+
+.group-b-standings-table td.compliance-deduction-points{color:#ef8578;font-weight:800}
 .elimination-divider .drop-zone-label{display:block;margin:4px 0 0;color:#e6aaa0;font:700 8px/1.25 var(--mono);letter-spacing:.04em}
 .group-standings-table tr.eliminated-team td{color:#c69583}
 .elimination-divider td{padding:5px 4px!important;border:0!important;color:var(--gold-bright);font:700 7px/1.2 var(--mono);letter-spacing:.04em;text-align:center!important;white-space:normal!important}
 .qualification-rule{display:block;width:100%;height:2px;margin:0 0 4px;background:linear-gradient(90deg,#8f6c32,#f4d792,#8f6c32);box-shadow:0 0 7px rgba(211,173,104,.52)}
 .elimination-divider small{display:inline-block;margin-left:3px;color:#d39b87;font:6px var(--mono);letter-spacing:.02em}
 @media(max-width:900px){.home-group-standings-grid{grid-template-columns:minmax(0,1fr);gap:11px}.group-stage-section{padding:12px}}
-@media(max-width:430px){.group-stage-section{padding:10px}.group-standings-table col.position-column{width:30px}.group-standings-table col.points-column{width:40px}.group-standings-table col.deduction-column{width:60px}.group-standings-table col.total-column{width:48px}.group-standings-table th,.group-standings-table td{padding:5px 3px}.group-standings-table th:nth-child(5){font-size:6px}.group-standings-table .group-team-name{font-size:9px}}
+@media(max-width:430px){.group-stage-section{padding:10px}.group-standings-table col.position-column{width:30px}.group-standings-table col.points-column{width:40px}.group-standings-table col.total-column{width:48px}.group-standings-table th,.group-standings-table td{padding:5px 3px}.group-standings-table th:nth-child(5){font-size:6px}.group-standings-table .group-team-name{font-size:9px}}
 @media(max-width:760px){.next-race-card{margin:14px 0 34px;padding:14px;align-items:flex-start;flex-direction:column;gap:10px}.group-stage-status{white-space:normal}.group-standings-card{padding:6px 7px}.group-standings-table{min-width:0}}
 
 /* Broadcast scale typography and the Next Race feature panel. */
@@ -218,7 +223,7 @@ td{font-size:13px;padding:12px 9px;color:#f0ede6}
 @media(max-width:1100px){.next-race-setup{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:16px}.next-race-setup>div:nth-child(4){padding-left:0;border-left:0}}
 @media(max-width:900px){.main-nav{gap:clamp(12px,2.2vw,20px)}.main-nav a{font-size:11px}.home-group-standings-grid{grid-template-columns:minmax(0,1fr)}.group-stage-section{padding:17px}}
 @media(max-width:760px){body{font-size:15px}.site-header{padding:10px 16px 0}.next-race-hero{margin:14px 0 17px;padding:22px 18px}.race-panel-overline{font-size:11px}.next-race-hero h2{font-size:clamp(34px,9vw,46px)}.next-race-primary{font-size:14px;gap:8px 15px}.next-race-circuit{font-size:17px}.next-race-date{font-size:14px}.next-race-start-times{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:17px}.next-race-start-times>div{display:block;padding:10px}.next-race-start-times span,.next-race-start-times strong{display:block}.next-race-start-times strong{margin-top:5px;font-size:14px}.next-race-start-times .start-time-stack{align-items:flex-start}.next-race-start-times .local-start-date{text-align:left}.next-race-setup{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:15px;margin-top:19px;padding-top:15px}.next-race-setup>div,.next-race-setup>div:nth-child(4){padding:0 8px;border-left:1px solid rgba(231,201,137,.2)}.next-race-setup>div:nth-child(odd){padding-left:0;border-left:0}.next-race-setup dt{font-size:9px}.next-race-setup dd{font-size:13px}.group-stage-section{padding:14px}.group-standings-heading h2{font-size:19px}.group-standings-table th{font-size:9px}.group-standings-table td{font-size:12px;padding:8px 5px}.group-standings-table .group-team-name{font-size:12px}}
-@media(max-width:430px){.next-race-start-times{grid-template-columns:1fr}.next-race-primary{align-items:flex-start;flex-direction:column}.group-stage-status{max-width:48%}.group-standings-table col.position-column{width:30px}.group-standings-table col.points-column{width:40px}.group-standings-table col.deduction-column{width:60px}.group-standings-table col.total-column{width:48px}.group-standings-table th,.group-standings-table td{padding:7px 3px}}
+@media(max-width:430px){.next-race-start-times{grid-template-columns:1fr}.next-race-primary{align-items:flex-start;flex-direction:column}.group-stage-status{max-width:48%}.group-standings-table col.position-column{width:30px}.group-standings-table col.points-column{width:40px}.group-standings-table col.total-column{width:48px}.group-standings-table th,.group-standings-table td{padding:7px 3px}}
 
 /* Driver Data: searchable per-race result history with explicit column spacing. */
 .driver-data-filters{display:grid;grid-template-columns:minmax(260px,1.35fr) minmax(0,3fr) auto;align-items:end;gap:18px;margin:26px 0 30px;padding:22px;background:linear-gradient(145deg,#151716,#0d0f0f);border:1px solid rgba(211,173,104,.28)}
@@ -345,3 +350,12 @@ table{border-radius:12px;overflow:hidden}th{font-family:var(--sans);font-size:11
 .ranking-info{margin-top:15px;padding:0 13px}.ranking-info summary,.coverage-disclosure>summary{cursor:pointer;list-style:none;color:#e7cb8d;font-size:13px;font-weight:750}.ranking-info summary::-webkit-details-marker,.coverage-disclosure>summary::-webkit-details-marker{display:none}.ranking-info summary:after{content:"＋";float:right;color:#e7cb8d}.ranking-info[open] summary:after{content:"−"}.ranking-info summary{padding:12px 0}.ranking-info p{margin:0;padding:0 0 13px;color:#c8c2b7;font-size:13px;line-height:1.6}.detail-method-disclosure{margin:0 0 14px}.detail-method-disclosure .detail-method{max-width:none;text-align:left}
 .coverage-disclosure{padding:0 17px}.coverage-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 0}.coverage-disclosure>summary small{color:#bdb6a7;font-size:12px;font-weight:600}.coverage-disclosure[open]>summary{border-bottom:1px solid rgba(216,179,109,.16)}.coverage-disclosure-content{padding:20px 0 8px}.coverage-disclosure-content .section-heading{margin-bottom:17px}.coverage-disclosure-content .coverage-grid{margin-bottom:16px}
 @media(max-width:620px){.performance-subtitle{font-size:14px}.cumulative-card .card-heading h3{font-size:20px}.main-cumulative-table .driver-name{font-size:14px}.main-cumulative-table tbody td{padding:10px 6px;font-size:12px}.main-cumulative-table tbody td.lap-time{font-size:14px}.ranking-info{padding:0 10px}.ranking-info summary,.coverage-disclosure>summary{font-size:12px}.ranking-info p{font-size:12px}.coverage-disclosure>summary small{font-size:10px}.coverage-disclosure{padding:0 12px}}
+/* The extra Group B deduction field scrolls inside its own card without widening the page. */
+.group-b-standings-card{overflow-x:auto;overflow-y:visible;overscroll-behavior-x:contain}.group-b-standings-table{min-width:0!important}
+/* Compact championship columns with the team name taking the remaining width. */
+.group-standings-table col.position-column{width:42px}.group-standings-table col.points-column{width:56px}.group-standings-table col.total-column{width:74px}
+.group-standings-table th .standings-tooltip-trigger{position:relative;display:inline-flex;align-items:center;justify-content:flex-end;max-width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;white-space:nowrap;cursor:help;text-align:inherit}
+.group-standings-table th:first-child .standings-tooltip-trigger{justify-content:center}.group-standings-table th:nth-child(2) .standings-tooltip-trigger{justify-content:flex-start}
+.group-standings-table th .standings-tooltip-trigger:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;border-radius:3px}
+.standings-tooltip-popover{position:fixed;z-index:9999;max-width:min(280px,calc(100vw - 16px));padding:9px 12px;border:1px solid rgba(231,201,137,.72);border-radius:9px;background:linear-gradient(145deg,#191816,#080909);box-shadow:0 10px 28px rgba(0,0,0,.6);color:#fff0c5;font:600 12px/1.35 var(--sans);text-align:left;white-space:normal;pointer-events:none}.standings-tooltip-popover[hidden]{display:none}
+@media(max-width:620px){.group-standings-table col.position-column{width:28px}.group-standings-table col.points-column{width:34px}.group-standings-table col.total-column{width:44px}.group-standings-table th,.group-standings-table td{padding:6px 3px}.group-standings-table th{font-size:8px;letter-spacing:0}.group-standings-table td{font-size:11px}.group-standings-table .group-team-name{font-size:11px}.group-standings-table th .standings-tooltip-trigger{font-size:8px}}

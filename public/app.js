@@ -1,4 +1,4 @@
-const DATA_URL = "data/penrose-stats.json?v=20261110-qualifying-data-1";
+const DATA_URL = "data/penrose-stats.json?v=20261110-standings-tooltips-2";
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const params = new URLSearchParams(location.search);
@@ -238,12 +238,82 @@ function prizeBreakdownSection() {
     : `<div class="prize-breakdown-pending"><span class="prize-pending-icon" aria-hidden="true">£</span><div><strong>Prize breakdown graphic</strong><p>The source graphic has not been added to the project yet. Its prize categories and amounts are not transcribed or estimated.</p></div></div>`;
   return `<section class="prize-breakdown-section" id="prize-breakdown" aria-labelledby="prize-breakdown-title"><div class="prize-breakdown-heading"><div><span class="opening-kicker">PENROSE CUP · PRIZE POOL</span><h2 id="prize-breakdown-title">Prize <em>breakdown</em></h2></div><strong class="prize-breakdown-total">${esc(prizePoolTotal())} total</strong></div>${graphic}</section>`;
 }
+function standingsHeading(label, explanation) {
+  return `<th><button class="standings-tooltip-trigger" type="button" aria-expanded="false" aria-label="${esc(`${label}: ${explanation}`)}" data-tooltip="${esc(explanation)}">${esc(label)}</button></th>`;
+}
+let activeStandingsTooltip = null;
+function hideStandingsTooltip() {
+  if (!activeStandingsTooltip) return;
+  if (activeStandingsTooltip.button) activeStandingsTooltip.button.setAttribute("aria-expanded", "false");
+  activeStandingsTooltip.button = null;
+  activeStandingsTooltip.node.hidden = true;
+}
+function showStandingsTooltip(button) {
+  if (!activeStandingsTooltip) {
+    const node = document.createElement("div");
+    node.className = "standings-tooltip-popover";
+    node.setAttribute("role", "tooltip");
+    node.hidden = true;
+    document.body.append(node);
+    activeStandingsTooltip = { node, button: null };
+  }
+  if (activeStandingsTooltip.button && activeStandingsTooltip.button !== button) activeStandingsTooltip.button.setAttribute("aria-expanded", "false");
+  activeStandingsTooltip.button = button;
+  activeStandingsTooltip.node.textContent = button.dataset.tooltip || button.getAttribute("aria-label") || "";
+  activeStandingsTooltip.node.hidden = false;
+  button.setAttribute("aria-expanded", "true");
+  const rect = button.getBoundingClientRect();
+  const tooltip = activeStandingsTooltip.node;
+  const left = Math.max(8, Math.min(window.innerWidth - tooltip.offsetWidth - 8, rect.left + rect.width / 2 - tooltip.offsetWidth / 2));
+  const top = rect.bottom + tooltip.offsetHeight + 12 < window.innerHeight ? rect.bottom + 7 : Math.max(8, rect.top - tooltip.offsetHeight - 7);
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+function wireStandingsTooltips() {
+  if (!document.addEventListener || !document.body?.dataset) return;
+  if (document.body.dataset.standingsTooltipsWired) return;
+  document.body.dataset.standingsTooltipsWired = "true";
+  document.addEventListener("pointerover", (event) => {
+    if (event.pointerType !== "mouse") return;
+    const button = event.target.closest?.(".standings-tooltip-trigger");
+    if (button) showStandingsTooltip(button);
+  });
+  document.addEventListener("pointerout", (event) => {
+    if (event.pointerType !== "mouse") return;
+    if (event.target.closest?.(".standings-tooltip-trigger") && !event.relatedTarget?.closest?.(".standings-tooltip-trigger")) hideStandingsTooltip();
+  });
+  document.addEventListener("focusin", (event) => {
+    const button = event.target.closest?.(".standings-tooltip-trigger");
+    if (button) showStandingsTooltip(button);
+  });
+  document.addEventListener("focusout", (event) => {
+    if (event.target.closest?.(".standings-tooltip-trigger")) setTimeout(() => {
+      if (!document.activeElement?.closest?.(".standings-tooltip-trigger")) hideStandingsTooltip();
+    }, 0);
+  });
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest?.(".standings-tooltip-trigger");
+    if (button) {
+      if (event.pointerType === "mouse" || event.detail === 0) return;
+      if (button.getAttribute("aria-expanded") === "true") hideStandingsTooltip();
+      else showStandingsTooltip(button);
+      return;
+    }
+    if (!event.target.closest?.(".standings-tooltip-popover")) hideStandingsTooltip();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") hideStandingsTooltip();
+  });
+  window.addEventListener("scroll", hideStandingsTooltip, true);
+}
 function groupStageStandings(group) {
   const standings = sourceData.groupStage?.groups?.[group];
   if (!standings) return "";
   const boundary = window.PenroseCore.qualificationBoundary(standings);
   const stage = standings.eliminationNoticeStage || standings.competitionStage || standings.stage || "Group Stage";
   const eliminationNotice = window.PenroseCore.eliminationNotice(group, stage);
+  const groupB = group === "Group B";
+  const columnCount = 5;
   const eliminationStatus = standings.stageStatus === "CONFIRMED"
     ? "Results confirmed"
     : "Provisional points · no teams eliminated";
@@ -253,18 +323,17 @@ function groupStageStandings(group) {
       && Number.isFinite(Number(team.position)) && Number(team.position) > boundary.cutoff;
     const classes = [team.eliminated ? "eliminated-team" : "", provisionalRisk ? "provisional-drop-zone" : ""].filter(Boolean).join(" ");
     const zoneHeading = index === 0 && boundary.qualifyingZoneLabel
-      ? `<tr class="standings-zone-heading qualifying-zone-heading"><td colspan="6">${esc(boundary.qualifyingZoneLabel)}</td></tr>`
+      ? `<tr class="standings-zone-heading qualifying-zone-heading"><td colspan="${columnCount}">${esc(boundary.qualifyingZoneLabel)}</td></tr>`
       : "";
     const dropZoneHeading = boundary.lineAfter === index && boundary.dropZoneLabel
-      ? `<tr class="standings-zone-heading drop-zone-heading"><td colspan="6"><strong>${esc(boundary.dropZoneLabel)}</strong></td></tr>`
+      ? `<tr class="standings-zone-heading drop-zone-heading"><td colspan="${columnCount}"><strong>${esc(boundary.dropZoneLabel)}</strong></td></tr>`
       : "";
-    const deductions = Number(team.pointDeductions ?? 0);
-    const deductionText = deductions > 0 ? `−${deductions.toLocaleString("en-GB")}` : "—";
-    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td><td class="deduction-points">${deductionText}</td><td class="lap-time">${team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB")}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="6"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
+    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td><td class="lap-time">${team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB")}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="${columnCount}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
     return row;
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
-  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card"><table class="group-standings-table"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column"><col class="total-column"></colgroup><thead><tr><th>Pos</th><th>Team</th><th>R1</th><th>R2</th><th>Point Deductions</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("TOTAL", "Total Championship Points Recorded in Race Director")}`;
+  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function noStageResultsStats(selected) {
   const emptyLap = (title, index) => `<article class="leaderboard-card"><div class="card-heading"><div><span class="card-overline">${index}</span><h3>${esc(title)}</h3></div><span class="card-icon">—</span></div><p class="empty-state">No results are available in this competition scope.</p></article>`;
@@ -569,6 +638,13 @@ async function refreshStatistics() {
 }
 function start() {
   // Statistics refresh only when the page is loaded after an organiser-requested update.
+  wireStandingsTooltips();
+  if ("BroadcastChannel" in window) {
+    const approvalUpdates = new BroadcastChannel("penrose-local-standings");
+    approvalUpdates.addEventListener("message", (event) => {
+      if (event.data?.type === "compliance-standings-updated") void refreshStatistics();
+    });
+  }
   void refreshStatistics();
 }
 start();
