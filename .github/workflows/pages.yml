@@ -1,0 +1,39 @@
+name: Publish Penrose Cup Statistics Hub
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build the allowlisted public site
+        run: python3 build_pages.py
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload only the public Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-build
+
+      - name: Publish Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
