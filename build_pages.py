@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
+from html import escape
 import json
 import re
 import shutil
 import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parent
@@ -77,6 +80,20 @@ def public_data_copy() -> bytes:
     return (json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def format_snapshot_timestamp(value: object) -> str:
+    """Render only the verified source snapshot capture time, never build time."""
+    if not isinstance(value, str) or not value.strip():
+        return "Not available"
+    try:
+        captured = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        if captured.tzinfo is None:
+            return "Not available"
+        local = captured.astimezone(ZoneInfo("Europe/London"))
+        return f"{local:%d %b %Y} · {local:%H} UK"
+    except (ValueError, OverflowError):
+        return "Not available"
+
+
 def check_local_references(build: Path) -> None:
     html_reference = re.compile(r"\b(?:href|src)=['\"]([^'\"]+)['\"]", re.IGNORECASE)
     for html_path in build.glob("*.html"):
@@ -112,6 +129,18 @@ def build() -> list[str]:
         raise ValueError("missing or symlinked allowlisted source file(s): " + ", ".join(missing))
 
     data_bytes = public_data_copy()
+    snapshot_timestamp = format_snapshot_timestamp(
+        json.loads(data_bytes.decode("utf-8")).get("meta", {}).get("snapshotCapturedAt")
+    )
+    snapshot_meta = json.loads(data_bytes.decode("utf-8")).get("meta", {})
+    raw_capture_time = snapshot_meta.get("snapshotCapturedAt")
+    datetime_attr = ""
+    if snapshot_timestamp != "Not available" and isinstance(raw_capture_time, str):
+        try:
+            parsed_capture_time = datetime.fromisoformat(raw_capture_time.strip().replace("Z", "+00:00"))
+            datetime_attr = f' datetime="{escape(parsed_capture_time.isoformat(), quote=True)}"'
+        except (ValueError, OverflowError):
+            pass
     data_hash = hashlib.sha256(data_bytes).hexdigest()[:16]
     temp = ROOT / ".pages-build.tmp"
     if temp.is_symlink():
@@ -128,6 +157,34 @@ def build() -> list[str]:
                 destination.write_bytes(data_bytes)
             else:
                 shutil.copyfile(source, destination)
+
+        # Put the source snapshot time in the HTML itself as well as updating
+        # it from JSON at runtime. This keeps the shared value visible before
+        # JavaScript runs and when a browser delays script execution.
+        timestamp_markup = (
+            f'<time id="last-updated-value"{datetime_attr}>'
+            f'{escape(snapshot_timestamp)}'
+            '</time>'
+        )
+        timestamp_label = "Last Updated from Race Director:" if snapshot_timestamp != "Not available" else "Last Updated:"
+        for html_path in temp.glob("*.html"):
+            markup = html_path.read_text(encoding="utf-8")
+            markup = re.sub(
+                r'<span\s+id="last-updated-label"[^>]*>.*?</span>',
+                f'<span id="last-updated-label">{escape(timestamp_label)}</span>',
+                markup,
+                count=1,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            markup, count = re.subn(
+                r'<time\s+id="last-updated-value"[^>]*>.*?</time>',
+                timestamp_markup,
+                markup,
+                count=1,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if count:
+                html_path.write_text(markup, encoding="utf-8")
 
         app_path = temp / "app.js"
         app_text = app_path.read_text(encoding="utf-8")

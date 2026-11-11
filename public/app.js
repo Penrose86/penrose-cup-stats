@@ -42,16 +42,23 @@ function date(value) {
 function lastUpdatedLabel(value) {
   const target = $("#last-updated-value");
   if (!target) return;
+  const label = $("#last-updated-label");
   const parsed = typeof value === "string" ? new Date(value) : null;
   if (!parsed || Number.isNaN(parsed.getTime())) {
+    if (label) label.textContent = "Last Updated:";
     target.textContent = "Not available";
     target.removeAttribute("datetime");
     return;
   }
-  target.textContent = `${new Intl.DateTimeFormat("en-GB", {
+  if (label) label.textContent = "Last Updated from Race Director:";
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/London", day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).format(parsed)} UK`;
+    hour: "2-digit", hourCycle: "h23",
+  }).formatToParts(parsed).reduce((result, part) => {
+    if (part.type !== "literal") result[part.type] = part.value;
+    return result;
+  }, {});
+  target.textContent = `${parts.day} ${parts.month} ${parts.year} · ${parts.hour} UK`;
   target.setAttribute("datetime", parsed.toISOString());
 }
 function ukTime(value) {
@@ -841,7 +848,7 @@ function loadStatistics() {
 function renderFromStatistics(json) {
   sourceData = json;
   baseShell();
-  lastUpdatedLabel(json.meta?.generatedAt);
+  lastUpdatedLabel(json.meta?.snapshotCapturedAt);
   if (page === "home") {
     document.title = "Penrose Cup · Home";
     $("#page-content").innerHTML = homePageContent();
