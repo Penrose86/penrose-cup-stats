@@ -89,7 +89,7 @@ def format_snapshot_timestamp(value: object) -> str:
         if captured.tzinfo is None:
             return "Not available"
         local = captured.astimezone(ZoneInfo("Europe/London"))
-        return f"{local:%d %b %Y} · {local:%H} UK"
+        return f"{local:%d %b %Y} · {local:%H:%M} UK"
     except (ValueError, OverflowError):
         return "Not available"
 

@@ -53,12 +53,12 @@ function lastUpdatedLabel(value) {
   if (label) label.textContent = "Last Updated from Race Director:";
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/London", day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", hourCycle: "h23",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(parsed).reduce((result, part) => {
     if (part.type !== "literal") result[part.type] = part.value;
     return result;
   }, {});
-  target.textContent = `${parts.day} ${parts.month} ${parts.year} · ${parts.hour} UK`;
+  target.textContent = `${parts.day} ${parts.month} ${parts.year} · ${parts.hour}:${parts.minute} UK`;
   target.setAttribute("datetime", parsed.toISOString());
 }
 function ukTime(value) {
