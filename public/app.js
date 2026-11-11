@@ -510,7 +510,16 @@ function groupStageStandings(group, stageLabel = "Group Stage") {
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
   const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", PP_TOOLTIP, PP_TOOLTIP_TITLE, true, "pp-conversion")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
-  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — ${esc(stageLabel.toUpperCase())} STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  const ticketStatus = standings.round1TicketStatus;
+  const ticketBanner = ticketStatus === "complete"
+    ? '<div class="round-ticket-status round-ticket-status-complete" role="status"><span aria-hidden="true">●</span> GROUP A ROUND 1 — COMPLETE — All Tickets Resolved</div>'
+    : ticketStatus === "awaiting"
+      ? '<div class="round-ticket-status round-ticket-status-awaiting" role="status"><span aria-hidden="true">●</span> GROUP B ROUND 1 — AWAITING TICKETS — Results Provisional</div>'
+      : "";
+  const raceStatuses = ticketStatus
+    ? `<div class="group-race-statuses"><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>`
+    : `<div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>`;
+  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — ${esc(stageLabel.toUpperCase())} STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div>${ticketBanner}<div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div>${raceStatuses}${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function competitionStageSelector(group) {
   const options = [

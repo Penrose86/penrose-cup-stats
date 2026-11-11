@@ -212,6 +212,12 @@ td{font-size:13px;padding:12px 9px;color:#f0ede6}
 .group-race-statuses{gap:8px;margin-bottom:10px}
 .group-race-statuses span{padding:8px 9px;font-size:9px;color:#d3cec4}
 .group-race-statuses strong{font-size:9px;color:#f1d48e}
+.round-ticket-status{display:flex;align-items:center;gap:9px;margin:0 0 10px;padding:10px 13px;border-radius:10px;font:700 12px/1.35 var(--sans);letter-spacing:.015em}
+.round-ticket-status>span{font-size:10px}
+.round-ticket-status-complete{color:#a9e0b5;background:rgba(32,105,57,.18);border:1px solid rgba(105,190,124,.45)}
+.round-ticket-status-complete>span{color:#62d184}
+.round-ticket-status-awaiting{color:#f0b2a6;background:rgba(137,43,33,.17);border:1px solid rgba(218,103,87,.48)}
+.round-ticket-status-awaiting>span{color:#ff735f}
 .group-standings-table th{font-size:10px;padding:10px 7px;background:rgba(211,173,104,.08);color:#eed9a5}
 .group-standings-table td{font-size:13px;padding:9px 7px;border-bottom-color:rgba(255,255,255,.11)}
 .group-standings-table .group-team-name{font-size:13px;font-weight:600;line-height:1.28;color:#f5f2ec}
