@@ -227,8 +227,17 @@ function prizePoolTotal() {
     ? new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(amount)
     : "TBA";
 }
+function openingCheckerMarkup() {
+  const squares = Array.from({ length: 40 }, (_, index) => {
+    const row = Math.floor(index / 20);
+    const column = index % 20;
+    const tone = (row + column) % 2 === 0 ? "gold" : "dark";
+    return `<span class="checker-square checker-${tone}"></span>`;
+  }).join("");
+  return `<div class="opening-checker" aria-hidden="true">${squares}</div>`;
+}
 function openingHero() {
-  return `<section class="home-opening" aria-labelledby="home-opening-title"><div class="home-opening-art" aria-hidden="true"></div><div class="home-opening-content"><div class="home-opening-copy"><span class="opening-kicker"><span class="opening-kicker-mark" aria-hidden="true"></span>THE ROAD TO THE CROWN</span><h1 id="home-opening-title">PENROSE<br><span>CUP</span></h1><p>Every round. Every team. One championship.</p><div class="opening-checker" aria-hidden="true"></div></div><aside class="prize-pool-feature" aria-label="Penrose Cup prize pool"><span class="prize-feature-label">TOTAL PRIZE POOL</span><strong>${esc(prizePoolTotal())}</strong><a href="#prize-breakdown">View prize breakdown <span aria-hidden="true">↘</span></a></aside></div><div class="opening-bottomline"><span>OFFICIAL COMPETITION HUB</span><span>GROUP STAGE · SEASON 2026</span></div></section>`;
+  return `<section class="home-opening" aria-labelledby="home-opening-title"><div class="home-opening-art" aria-hidden="true"></div><div class="home-opening-content"><div class="home-opening-copy"><span class="opening-kicker"><span class="opening-kicker-mark" aria-hidden="true"></span>THE ROAD TO THE CROWN</span><h1 id="home-opening-title">PENROSE<br><span>CUP</span></h1><p>Every round. Every team. One championship.</p>${openingCheckerMarkup()}</div><aside class="prize-pool-feature" aria-label="Penrose Cup prize pool"><span class="prize-feature-label">TOTAL PRIZE POOL</span><strong>${esc(prizePoolTotal())}</strong><a href="#prize-breakdown">View prize breakdown <span aria-hidden="true">↘</span></a></aside></div><div class="opening-bottomline"><span>OFFICIAL COMPETITION HUB</span><span>GROUP STAGE · SEASON 2026</span></div></section>`;
 }
 function prizeBreakdownSection() {
   const config = window.PENROSE_SITE_CONFIG || {};
