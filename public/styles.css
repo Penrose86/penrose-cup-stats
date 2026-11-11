@@ -354,8 +354,59 @@ table{border-radius:12px;overflow:hidden}th{font-family:var(--sans);font-size:11
 .group-b-standings-card{overflow-x:auto;overflow-y:visible;overscroll-behavior-x:contain}.group-b-standings-table{min-width:0!important}
 /* Compact championship columns with the team name taking the remaining width. */
 .group-standings-table col.position-column{width:42px}.group-standings-table col.points-column{width:56px}.group-standings-table col.total-column{width:74px}
+.group-standings-card{min-width:0;overflow-x:auto;overflow-y:visible;overscroll-behavior-x:contain}
+.group-standings-table{min-width:610px;table-layout:fixed}
+.group-standings-table col.deduction-column{width:64px}
+.group-standings-table col.compliance-column{width:68px}
+.group-standings-table td.pp-deduction-points,.group-standings-table td.compliance-deduction-points{color:#ef8578;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.group-standings-table th:nth-child(5),.group-standings-table th:nth-child(6){white-space:nowrap}
+.group-b-standings-table{min-width:700px!important}
 .group-standings-table th .standings-tooltip-trigger{position:relative;display:inline-flex;align-items:center;justify-content:flex-end;max-width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;white-space:nowrap;cursor:help;text-align:inherit}
 .group-standings-table th:first-child .standings-tooltip-trigger{justify-content:center}.group-standings-table th:nth-child(2) .standings-tooltip-trigger{justify-content:flex-start}
 .group-standings-table th .standings-tooltip-trigger:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;border-radius:3px}
 .standings-tooltip-popover{position:fixed;z-index:9999;max-width:min(280px,calc(100vw - 16px));padding:9px 12px;border:1px solid rgba(231,201,137,.72);border-radius:9px;background:linear-gradient(145deg,#191816,#080909);box-shadow:0 10px 28px rgba(0,0,0,.6);color:#fff0c5;font:600 12px/1.35 var(--sans);text-align:left;white-space:normal;pointer-events:none}.standings-tooltip-popover[hidden]{display:none}
 @media(max-width:620px){.group-standings-table col.position-column{width:28px}.group-standings-table col.points-column{width:34px}.group-standings-table col.total-column{width:44px}.group-standings-table th,.group-standings-table td{padding:6px 3px}.group-standings-table th{font-size:8px;letter-spacing:0}.group-standings-table td{font-size:11px}.group-standings-table .group-team-name{font-size:11px}.group-standings-table th .standings-tooltip-trigger{font-size:8px}}
+@media(max-width:620px){.group-standings-table{min-width:610px}.group-b-standings-table{min-width:700px!important}.group-standings-table col.deduction-column{width:56px}.group-standings-table col.compliance-column{width:60px}}
+
+/* Give the homepage's wider Group B table room without changing other sections. */
+body[data-page="home"] .home-group-standings-grid{
+  position:relative;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(calc(100vw - 64px),1640px);
+  grid-template-columns:minmax(0,47fr) minmax(0,53fr);
+  align-items:stretch;
+  gap:18px;
+}
+body[data-page="home"] .home-group-standings-grid>.group-stage-section{min-width:0;height:100%;padding:12px}
+body[data-page="home"] .home-group-standings-grid .group-standings-card{min-width:0;padding:0 2px;overflow-x:auto}
+body[data-page="home"] .home-group-standings-grid .group-standings-table{width:100%;min-width:0!important;table-layout:fixed}
+body[data-page="home"] .home-group-standings-grid .group-standings-table th,
+body[data-page="home"] .home-group-standings-grid .group-standings-table td{padding-right:4px;padding-left:4px}
+body[data-page="home"] .home-group-standings-grid .group-standings-table td.group-team-name{padding-left:7px}
+@media(max-width:1100px){
+  body[data-page="home"] .home-group-standings-grid{position:static;left:auto;transform:none;width:100%;grid-template-columns:minmax(0,1fr);gap:12px}
+}
+@media(max-width:620px){
+  body[data-page="home"] .home-group-standings-grid{gap:11px}
+  body[data-page="home"] .home-group-standings-grid .group-standings-table{min-width:610px!important}
+  body[data-page="home"] .home-group-standings-grid .group-b-standings-table{min-width:700px!important}
+}
+
+/* The DC rule is long, so keep its popover readable and within the viewport. */
+.standings-tooltip-popover{
+  max-width:min(430px,calc(100vw - 24px));
+  max-height:min(68vh,560px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:15px 17px;
+  border-radius:13px;
+  font-size:13px;
+  line-height:1.5;
+  white-space:normal;
+  pointer-events:auto;
+  scrollbar-color:#9e7a3e #111413;
+}
+.standings-tooltip-title{display:block;margin:0 0 9px;color:#f4d58e;font-size:14px;font-weight:850;line-height:1.3}
+.standings-tooltip-copy{display:block;color:#fff0c5;white-space:pre-line}
+@media(max-width:620px){.standings-tooltip-popover{max-width:calc(100vw - 24px);max-height:68vh;padding:13px 14px;font-size:12px;line-height:1.48}.standings-tooltip-title{font-size:13px}}

@@ -1,4 +1,4 @@
-const DATA_URL = "data/penrose-stats.json?v=20261110-standings-tooltips-2";
+const DATA_URL = "data/penrose-stats.json?v=20261111-ppdc-2";
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const params = new URLSearchParams(location.search);
@@ -238,13 +238,32 @@ function prizeBreakdownSection() {
     : `<div class="prize-breakdown-pending"><span class="prize-pending-icon" aria-hidden="true">£</span><div><strong>Prize breakdown graphic</strong><p>The source graphic has not been added to the project yet. Its prize categories and amounts are not transcribed or estimated.</p></div></div>`;
   return `<section class="prize-breakdown-section" id="prize-breakdown" aria-labelledby="prize-breakdown-title"><div class="prize-breakdown-heading"><div><span class="opening-kicker">PENROSE CUP · PRIZE POOL</span><h2 id="prize-breakdown-title">Prize <em>breakdown</em></h2></div><strong class="prize-breakdown-total">${esc(prizePoolTotal())} total</strong></div>${graphic}</section>`;
 }
-function standingsHeading(label, explanation) {
-  return `<th><button class="standings-tooltip-trigger" type="button" aria-expanded="false" aria-label="${esc(`${label}: ${explanation}`)}" data-tooltip="${esc(explanation)}">${esc(label)}</button></th>`;
+function standingsHeading(label, explanation, tooltipTitle = "") {
+  const accessibleText = tooltipTitle ? `${tooltipTitle}. ${explanation}` : `${label}: ${explanation}`;
+  const titleAttribute = tooltipTitle ? ` data-tooltip-title="${esc(tooltipTitle)}"` : "";
+  return `<th><button class="standings-tooltip-trigger" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}"${titleAttribute}>${esc(label)}</button></th>`;
 }
+const DC_TOOLTIP_TITLE = "DC — Driver Compliance Deduction";
+const DC_TOOLTIP = `The four drivers who raced for a team in the Week 1 Placement Round become that team's Original Placement Drivers for the remainder of the Penrose Cup.
+
+From Week 2 onwards, teams are expected to field at least two of those original four drivers in each race.
+
+4 originals or 3 originals: No deduction.
+
+2 originals + 2 replacements: No deduction.
+
+1 original + 3 replacements: The highest-scoring replacement loses 50% of their points.
+
+0 originals + 4 replacements: The two highest-scoring replacements each lose 50% of their points.
+
+Deductions affect the team's championship total only, not the drivers' finishing positions. Points are calculated after finishing-position and bonus points have been added. Any 50% deduction is rounded down to the nearest whole point.
+
+Each race is assessed independently.`;
 let activeStandingsTooltip = null;
 function hideStandingsTooltip() {
   if (!activeStandingsTooltip) return;
   if (activeStandingsTooltip.button) activeStandingsTooltip.button.setAttribute("aria-expanded", "false");
+  if (activeStandingsTooltip.button) activeStandingsTooltip.button.removeAttribute("aria-describedby");
   activeStandingsTooltip.button = null;
   activeStandingsTooltip.node.hidden = true;
 }
@@ -252,20 +271,42 @@ function showStandingsTooltip(button) {
   if (!activeStandingsTooltip) {
     const node = document.createElement("div");
     node.className = "standings-tooltip-popover";
+    node.id = "standings-tooltip-popover";
     node.setAttribute("role", "tooltip");
     node.hidden = true;
     document.body.append(node);
     activeStandingsTooltip = { node, button: null };
   }
-  if (activeStandingsTooltip.button && activeStandingsTooltip.button !== button) activeStandingsTooltip.button.setAttribute("aria-expanded", "false");
+  if (activeStandingsTooltip.button && activeStandingsTooltip.button !== button) {
+    activeStandingsTooltip.button.setAttribute("aria-expanded", "false");
+    activeStandingsTooltip.button.removeAttribute("aria-describedby");
+  }
   activeStandingsTooltip.button = button;
-  activeStandingsTooltip.node.textContent = button.dataset.tooltip || button.getAttribute("aria-label") || "";
+  const title = button.dataset.tooltipTitle || "";
+  const explanation = button.dataset.tooltip || button.getAttribute("aria-label") || "";
+  activeStandingsTooltip.node.replaceChildren();
+  if (title) {
+    const heading = document.createElement("strong");
+    heading.className = "standings-tooltip-title";
+    heading.textContent = title;
+    const body = document.createElement("span");
+    body.className = "standings-tooltip-copy";
+    body.textContent = explanation;
+    activeStandingsTooltip.node.append(heading, body);
+  } else {
+    activeStandingsTooltip.node.textContent = explanation;
+  }
   activeStandingsTooltip.node.hidden = false;
   button.setAttribute("aria-expanded", "true");
+  button.setAttribute("aria-describedby", activeStandingsTooltip.node.id);
   const rect = button.getBoundingClientRect();
   const tooltip = activeStandingsTooltip.node;
   const left = Math.max(8, Math.min(window.innerWidth - tooltip.offsetWidth - 8, rect.left + rect.width / 2 - tooltip.offsetWidth / 2));
-  const top = rect.bottom + tooltip.offsetHeight + 12 < window.innerHeight ? rect.bottom + 7 : Math.max(8, rect.top - tooltip.offsetHeight - 7);
+  const belowTop = rect.bottom;
+  const aboveTop = rect.top - tooltip.offsetHeight;
+  const top = belowTop + tooltip.offsetHeight <= window.innerHeight - 8
+    ? belowTop
+    : Math.max(8, aboveTop);
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${top}px`;
 }
@@ -280,7 +321,11 @@ function wireStandingsTooltips() {
   });
   document.addEventListener("pointerout", (event) => {
     if (event.pointerType !== "mouse") return;
-    if (event.target.closest?.(".standings-tooltip-trigger") && !event.relatedTarget?.closest?.(".standings-tooltip-trigger")) hideStandingsTooltip();
+    const fromTrigger = event.target.closest?.(".standings-tooltip-trigger");
+    const fromTooltip = event.target.closest?.(".standings-tooltip-popover");
+    const toTrigger = event.relatedTarget?.closest?.(".standings-tooltip-trigger");
+    const toTooltip = event.relatedTarget?.closest?.(".standings-tooltip-popover");
+    if ((fromTrigger || fromTooltip) && !toTrigger && !toTooltip) hideStandingsTooltip();
   });
   document.addEventListener("focusin", (event) => {
     const button = event.target.closest?.(".standings-tooltip-trigger");
@@ -313,7 +358,7 @@ function groupStageStandings(group) {
   const stage = standings.eliminationNoticeStage || standings.competitionStage || standings.stage || "Group Stage";
   const eliminationNotice = window.PenroseCore.eliminationNotice(group, stage);
   const groupB = group === "Group B";
-  const columnCount = 5;
+  const columnCount = groupB ? 7 : 6;
   const eliminationStatus = standings.stageStatus === "CONFIRMED"
     ? "Results confirmed"
     : "Provisional points · no teams eliminated";
@@ -328,12 +373,18 @@ function groupStageStandings(group) {
     const dropZoneHeading = boundary.lineAfter === index && boundary.dropZoneLabel
       ? `<tr class="standings-zone-heading drop-zone-heading"><td colspan="${columnCount}"><strong>${esc(boundary.dropZoneLabel)}</strong></td></tr>`
       : "";
-    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td><td class="lap-time">${team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB")}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="${columnCount}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
+    const deductionCell = (value, className) => {
+      if (value == null) return `<td class="${className}">N/A</td>`;
+      const amount = Number(value);
+      return `<td class="${className}">${amount > 0 ? `−${amount.toLocaleString("en-GB")}` : "—"}</td>`;
+    };
+    const complianceCell = groupB ? deductionCell(team.driverComplianceDeductions, "compliance-deduction-points") : "";
+    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td>${deductionCell(team.ppDeductions, "pp-deduction-points")}${complianceCell}<td class="lap-time">${team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB")}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="${columnCount}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
     return row;
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
-  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("TOTAL", "Total Championship Points Recorded in Race Director")}`;
-  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", "Converted Time Penalty — This penalty is issued when a driver DNFs but receives a time penalty from the stewards. The time penalty is converted into a championship points deduction.")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
+  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function noStageResultsStats(selected) {
   const emptyLap = (title, index) => `<article class="leaderboard-card"><div class="card-heading"><div><span class="card-overline">${index}</span><h3>${esc(title)}</h3></div><span class="card-icon">—</span></div><p class="empty-state">No results are available in this competition scope.</p></article>`;
