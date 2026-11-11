@@ -238,10 +238,11 @@ function prizeBreakdownSection() {
     : `<div class="prize-breakdown-pending"><span class="prize-pending-icon" aria-hidden="true">£</span><div><strong>Prize breakdown graphic</strong><p>The source graphic has not been added to the project yet. Its prize categories and amounts are not transcribed or estimated.</p></div></div>`;
   return `<section class="prize-breakdown-section" id="prize-breakdown" aria-labelledby="prize-breakdown-title"><div class="prize-breakdown-heading"><div><span class="opening-kicker">PENROSE CUP · PRIZE POOL</span><h2 id="prize-breakdown-title">Prize <em>breakdown</em></h2></div><strong class="prize-breakdown-total">${esc(prizePoolTotal())} total</strong></div>${graphic}</section>`;
 }
-function standingsHeading(label, explanation, tooltipTitle = "") {
+function standingsHeading(label, explanation, tooltipTitle = "", infoIcon = false) {
   const accessibleText = tooltipTitle ? `${tooltipTitle}. ${explanation}` : `${label}: ${explanation}`;
   const titleAttribute = tooltipTitle ? ` data-tooltip-title="${esc(tooltipTitle)}"` : "";
-  return `<th><button class="standings-tooltip-trigger" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}"${titleAttribute}>${esc(label)}</button></th>`;
+  const icon = infoIcon ? '<span class="standings-tooltip-icon" aria-hidden="true">ⓘ</span>' : "";
+  return `<th><button class="standings-tooltip-trigger${infoIcon ? " has-info-icon" : ""}" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}"${titleAttribute}>${esc(label)}${icon}</button></th>`;
 }
 const DC_TOOLTIP_TITLE = "DC — Driver Compliance Deduction";
 const DC_TOOLTIP = `The four drivers who raced for a team in the Week 1 Placement Round become that team's Original Placement Drivers for the remainder of the Penrose Cup.
@@ -383,7 +384,7 @@ function groupStageStandings(group) {
     return row;
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
-  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", "Converted Time Penalty — This penalty is issued when a driver DNFs but receives a time penalty from the stewards. The time penalty is converted into a championship points deduction.")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
+  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", "Converted Time Penalty — This penalty is issued when a driver DNFs but receives a time penalty from the stewards. The time penalty is converted into a championship points deduction.", "", true)}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
   return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function noStageResultsStats(selected) {
