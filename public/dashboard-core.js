@@ -335,7 +335,11 @@
   function qualificationBoundary(standings) {
     const stage = String(standings.competitionStage || standings.stage || "Group Stage").toLowerCase();
     const isGroupStage = stage.includes("group") || (!stage.includes("knockout") && !stage.includes("semi") && !stage.includes("final"));
-    const cutoff = stage.includes("semi") ? 5 : stage.includes("knockout") ? 8 : (standings.qualificationCutoff || standings.knockoutCutoff || 10);
+    const configuredCutoff = standings.advancementCutoff ?? standings.qualificationCutoff ?? standings.knockoutCutoff;
+    const isFinal = stage.includes("final") && !stage.includes("semi");
+    const cutoff = configuredCutoff !== undefined
+      ? Number(configuredCutoff)
+      : isFinal ? null : stage.includes("semi") ? 5 : stage.includes("knockout") ? 7 : 10;
     const rows = standings.teams || [];
     const ranked = standings.ranked ?? (rows.length > 0 && rows.every((row) => row.totalPoints != null && Number.isFinite(Number(row.totalPoints))));
     const races = standings.races || [];
@@ -344,12 +348,12 @@
     // Group standings become useful for a provisional drop zone as soon as a
     // complete Race 1 table can be ranked. Race 2 then uses combined totals.
     const boundaryReached = isGroupStage ? race1?.captured === true : (standings.resultsCaptured ?? ranked);
-    const tie = ranked && rows.length > cutoff
+    const tie = cutoff != null && cutoff > 0 && ranked && rows.length > cutoff
       && rows[cutoff - 1].totalPoints != null
       && rows[cutoff].totalPoints != null
       && Number(rows[cutoff - 1].totalPoints) === Number(rows[cutoff].totalPoints);
     const confirmed = !tie && (standings.eliminationConfirmed === true || standings.qualificationConfirmed === true);
-    const show = Boolean(ranked && boundaryReached && rows.length > cutoff);
+    const show = Boolean(cutoff != null && cutoff > 0 && ranked && boundaryReached && rows.length > cutoff);
     // If the cutoff is tied, keep tied teams together and put the visual line
     // after the tied block. The warning remains explicit that progression is
     // undecided; no tie-break is invented.
@@ -380,8 +384,8 @@
   function eliminationNotice(group, stage = "Group Stage") {
     const stageKey = String(stage || "Group Stage").toLowerCase();
     const label = String(group || "Group A").toUpperCase();
-    if (stageKey.includes("semi")) return `${label} — 3 TEAMS TO BE ELIMINATED`;
-    if (stageKey.includes("knockout")) return `${label} — 2 TEAMS TO BE ELIMINATED`;
+    if (stageKey.includes("semi")) return `${label} — 2 TEAMS TO BE ELIMINATED`;
+    if (stageKey.includes("knockout")) return `${label} — 3 TEAMS TO BE ELIMINATED`;
     if (stageKey.includes("final")) return `${label} — 5 TEAMS IN THE CHAMPIONSHIP RACE`;
     return `${label} — ${label === "GROUP A" ? 6 : 9} TEAMS AT RISK`;
   }

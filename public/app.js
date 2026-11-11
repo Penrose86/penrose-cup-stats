@@ -1,9 +1,13 @@
-const DATA_URL = "data/penrose-stats.json?v=20261111-ppdc-2";
+const DATA_URL = "data/penrose-stats.json?v=20261111-current-stage-2";
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const params = new URLSearchParams(location.search);
 const page = document.body.dataset.page;
 let scope = page === "details" ? (params.get("stage") || params.get("scope") || "overall") : document.body.dataset.scope;
+const COMPETITION_STAGE = (() => {
+  const requested = String(params.get("stage") || "group-stage").toLowerCase().replace(/_/g, "-");
+  return ({ "group-stage": "Group Stage", group: "Group Stage", knockout: "Knockout", "semi-final": "Semi-Final", final: "Final" })[requested] || "Group Stage";
+})();
 const SCOPE_INFO = {
   overall: { title: "Overall competition", eyebrow: "Placement + group stages · Overall", intro: "Cumulative totals follow each driver’s path: their assigned Placement Race plus recorded Group A or Group B competition races." },
   preliminary: { title: "Preliminary rounds", eyebrow: "Placement stage · Barcelona", intro: "Historical placement statistics across seven Placement Races. Manually entered Results count as participation; missing fastest laps remain unavailable." },
@@ -34,6 +38,21 @@ function date(value) {
   if (!value) return "—";
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", day: "numeric", month: "short", year: "numeric" }).format(parsed);
+}
+function lastUpdatedLabel(value) {
+  const target = $("#last-updated-value");
+  if (!target) return;
+  const parsed = typeof value === "string" ? new Date(value) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    target.textContent = "Not available";
+    target.removeAttribute("datetime");
+    return;
+  }
+  target.textContent = `${new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(parsed)} UK`;
+  target.setAttribute("datetime", parsed.toISOString());
 }
 function ukTime(value) {
   if (!value) return "—";
@@ -445,7 +464,7 @@ function wireStandingsTooltips() {
   });
   window.addEventListener("scroll", hideStandingsTooltip, true);
 }
-function groupStageStandings(group) {
+function groupStageStandings(group, stageLabel = "Group Stage") {
   const standings = sourceData.groupStage?.groups?.[group];
   if (!standings) return "";
   const boundary = window.PenroseCore.qualificationBoundary(standings);
@@ -484,7 +503,76 @@ function groupStageStandings(group) {
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
   const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", PP_TOOLTIP, PP_TOOLTIP_TITLE, true, "pp-conversion")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
-  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — ${esc(stageLabel.toUpperCase())} STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+function competitionStageSelector(group) {
+  const options = [
+    ["group-stage", "Group Stage", "Group Stage"],
+    ["knockout", "Knockout", "Knockout"],
+    ["semi-final", "Semi-Final", "Semi-Final"],
+    ["final", "Final", "Final"],
+  ];
+  const href = page === "competition" ? location.pathname.split("/").pop() : `${group === "Group A" ? "group-a" : "group-b"}.html`;
+  return `<nav class="competition-stage-selector" aria-label="${esc(group)} competition stage">${options.map(([value, label, stage]) => {
+    const current = COMPETITION_STAGE === stage;
+    return `<a href="${esc(href)}?stage=${value}"${current ? ' class="active" aria-current="page"' : ""}>${esc(label)}</a>`;
+  }).join("")}</nav>`;
+}
+function laterStageStandings(group, stage, includeSelector = true) {
+  const standings = sourceData.stageStandings?.[stage]?.[group];
+  const groupB = group === "Group B";
+  const selector = includeSelector ? competitionStageSelector(group) : "";
+  if (!standings || !standings.teams?.length) {
+    return `${selector}<section class="group-stage-section later-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — ${esc(stage.toUpperCase())} STANDINGS</h2><span class="group-stage-status">${esc(standings?.stageStatus || "Awaiting Race Director results.")}</span></div><p class="empty-state later-stage-awaiting">Awaiting Race Director results.</p></section>`;
+  }
+  const rounds = standings.rounds || [];
+  const boundary = window.PenroseCore.qualificationBoundary({ ...standings, competitionStage: stage });
+  const columns = 3 + rounds.length + (groupB ? 2 : 1);
+  const roundHeaders = rounds.map((round) => `<th title="Round ${round.raceNumber} Points">R${Number(round.raceNumber)}</th>`).join("");
+  const rows = standings.teams.map((team, index) => {
+    const rank = team.position ?? "—";
+    const zoneHeading = index === 0 && boundary.qualifyingZoneLabel
+      ? `<tr class="standings-zone-heading qualifying-zone-heading"><td colspan="${columns}">${esc(boundary.qualifyingZoneLabel)}</td></tr>` : "";
+    const dropLabel = boundary.tie
+      ? "PROVISIONAL DROP ZONE — CUTOFF TIE UNRESOLVED"
+      : `PROVISIONAL DROP ZONE — ${Math.max(0, standings.teams.length - (standings.advancementCutoff || 0))} TEAMS AT RISK`;
+    const dropHeading = boundary.lineAfter === index
+      ? `<tr class="standings-zone-heading drop-zone-heading"><td colspan="${columns}"><strong>${esc(dropLabel)}</strong></td></tr>` : "";
+    const points = rounds.map((round) => {
+      const value = team.roundPoints?.[String(round.raceNumber)];
+      return `<td>${value == null ? "—" : Number(value).toLocaleString("en-GB")}</td>`;
+    }).join("");
+    const deduction = (value, cls) => `<td class="${cls}">${value == null || Number(value) === 0 ? "—" : `−${Number(value).toLocaleString("en-GB")}`}</td>`;
+    const total = team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB");
+    const minimumIcon = team.totalPoints === 0 && Number(team.uncappedTotal) < 0
+      ? minimumPointsIcon({ ...team, race1Points: team.earnedPoints, race2Points: 0 }, group) : "";
+    const row = `${zoneHeading}${dropHeading}<tr><td class="rank">${esc(rank)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td>${points}${deduction(team.ppDeductions, "pp-deduction-points")}${groupB ? deduction(team.driverComplianceDeductions, "compliance-deduction-points") : ""}<td class="lap-time">${total}${minimumIcon}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider"><td colspan="${columns}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.tie ? " · CUTOFF TIE UNRESOLVED" : ""}</td></tr>` : ""}`;
+    return row;
+  }).join("");
+  const tie = boundary.tie ? '<p class="group-stage-alert">Tie at the advancement cutoff; progression is undecided.</p>' : "";
+  const headers = `${roundHeaders}${standingsHeading("PP", PP_TOOLTIP, PP_TOOLTIP_TITLE, true, "pp-conversion")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
+  const stageNote = stage === "Final"
+    ? "Final positions determine the group champion; results remain provisional until advancement is confirmed."
+    : "Points reset to zero for this stage. No points are carried forward.";
+  return `${selector}<section class="group-stage-section later-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — ${esc(stage.toUpperCase())} STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><p class="stage-reset-note">${esc(stageNote)}</p>${!standings.resultsCaptured ? '<p class="later-stage-awaiting">Awaiting Race Director results.</p>' : ""}${tie}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>${standings.validationIssues?.length ? `<details class="stage-validation-note"><summary>Race Director data validation</summary><ul>${standings.validationIssues.map((issue) => `<li>${esc(issue)}</li>`).join("")}</ul></details>` : ""}</section>`;
+}
+function groupPageStandings(group) {
+  return COMPETITION_STAGE === "Group Stage"
+    ? `${competitionStageSelector(group)}${groupStageStandings(group, "Group Stage")}`
+    : laterStageStandings(group, COMPETITION_STAGE);
+}
+function currentStageLabel(stage) {
+  return stage === "Group Stage" ? "GROUP STAGE (RACES 1 & 2)" : String(stage || "Group Stage").toUpperCase();
+}
+function homepageStageStandings() {
+  const stage = sourceData.currentStage?.stage && ["Group Stage", "Knockout", "Semi-Final", "Final"].includes(sourceData.currentStage.stage)
+    ? sourceData.currentStage.stage : "Group Stage";
+  const ambiguity = sourceData.currentStage?.activationAmbiguous
+    ? '<p class="stage-activation-note">Later-stage results could not be verified. Showing the last confirmed stage.</p>' : "";
+  const tables = stage === "Group Stage"
+    ? `${groupStageStandings("Group A", "Group Stage")}${groupStageStandings("Group B", "Group Stage")}`
+    : `${laterStageStandings("Group A", stage, false)}${laterStageStandings("Group B", stage, false)}`;
+  return `<section class="current-competition-stage"><div class="current-stage-title"><p class="eyebrow">Championship progression</p><h2>CURRENT STAGE — ${esc(currentStageLabel(stage))}</h2>${ambiguity}</div><div class="home-group-standings-grid">${tables}</div></section>`;
 }
 function noStageResultsStats(selected) {
   const emptyLap = (title, index) => `<article class="leaderboard-card"><div class="card-heading"><div><span class="card-overline">${index}</span><h3>${esc(title)}</h3></div><span class="card-icon">—</span></div><p class="empty-state">No results are available in this competition scope.</p></article>`;
@@ -514,12 +602,13 @@ function mainPageContent() {
   const info = SCOPE_INFO[scope] || SCOPE_INFO.preliminary;
   const lead = hero(titleMarkup(info.title), info.eyebrow, info.intro);
   const next = nextRaceCard();
-  if (!events.length) return `${lead}${next}${emptyCompetition(events)}`;
+  const groupStandings = scope === "group-a" ? groupPageStandings("Group A") : scope === "group-b" ? groupPageStandings("Group B") : "";
+  if (!events.length) return `${lead}${next}${groupStandings}${emptyCompetition(events)}`;
   const selected = selection();
-  return `${lead}${next}${scope === "group-a" ? groupStageStandings("Group A") : scope === "group-b" ? groupStageStandings("Group B") : ""}<section class="section-block stage-overview"><div class="section-heading"><div><p class="eyebrow">Competition scope</p><h2>${esc(info.title)} <em>only.</em></h2></div><p class="section-note">${events.length} eligible event${events.length === 1 ? "" : "s"} · preliminary and group stages stay separate.</p></div>${filterPanel(events)}<div id="stage-summary">${summaryCards(events, selected)}</div><p class="table-footnote" id="active-filter-note">Filters apply to cumulative statistics within this competition stage.</p></section><div id="main-statistics">${mainStatistics(selected)}</div>${missingCoverage(events)}`;
+  return `${lead}${next}${groupStandings}<section class="section-block stage-overview"><div class="section-heading"><div><p class="eyebrow">Competition scope</p><h2>${esc(info.title)} <em>only.</em></h2></div><p class="section-note">${events.length} eligible event${events.length === 1 ? "" : "s"} · preliminary and group stages stay separate.</p></div>${filterPanel(events)}<div id="stage-summary">${summaryCards(events, selected)}</div><p class="table-footnote" id="active-filter-note">Filters apply to cumulative statistics within this competition stage.</p></section><div id="main-statistics">${mainStatistics(selected)}</div>${missingCoverage(events)}`;
 }
 function homePageContent() {
-  return `${openingHero()}${nextRaceCard()}<div class="home-group-standings-grid">${groupStageStandings("Group A")}${groupStageStandings("Group B")}</div>${prizeBreakdownSection()}`;
+  return `${openingHero()}${nextRaceCard()}${homepageStageStandings()}${prizeBreakdownSection()}`;
 }
 function formatLapCell(lap) {
   if (!lap) return "—";
@@ -752,6 +841,7 @@ function loadStatistics() {
 function renderFromStatistics(json) {
   sourceData = json;
   baseShell();
+  lastUpdatedLabel(json.meta?.generatedAt);
   if (page === "home") {
     document.title = "Penrose Cup · Home";
     $("#page-content").innerHTML = homePageContent();
