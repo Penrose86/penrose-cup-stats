@@ -413,3 +413,15 @@ body[data-page="home"] .home-group-standings-grid .group-standings-table td.grou
 .group-standings-table th .standings-tooltip-trigger.has-info-icon{gap:3px}
 .standings-tooltip-icon{display:inline-grid;place-items:center;flex:0 0 11px;width:11px;height:11px;color:#e8c77e;font:800 10px/1 var(--sans);text-shadow:0 0 7px rgba(232,199,126,.28)}
 @media(max-width:620px){.standings-tooltip-icon{flex-basis:10px;width:10px;height:10px;font-size:9px}}
+.group-standings-table td .total-minimum-rule-trigger{display:inline-flex;align-items:center;justify-content:center;margin-left:4px;padding:0;border:0;background:transparent;color:inherit;vertical-align:middle;line-height:1;cursor:help}
+.group-standings-table td .total-minimum-rule-trigger:focus-visible{outline:2px solid var(--gold-bright);outline-offset:3px;border-radius:3px}
+.standings-tooltip-popover.has-penalty-conversion{max-width:min(540px,calc(100vw - 24px));padding:16px 18px}
+.penalty-conversion-intro{margin:0;color:#fff0c5}
+.penalty-conversion-table{width:100%;margin:11px 0 12px;border-collapse:collapse;color:#fff0c5;font:600 12px/1.4 var(--sans);text-align:left}
+.penalty-conversion-table thead th{padding:8px 9px;border-bottom:1px solid rgba(232,199,126,.55);color:#f2cf83;font-size:11px;font-weight:850}
+.penalty-conversion-table tbody th,.penalty-conversion-table tbody td{padding:7px 9px;border-bottom:1px solid rgba(231,201,137,.18)}
+.penalty-conversion-table tbody th{color:#fff4d7;font-weight:700}
+.penalty-conversion-table tbody td{text-align:right;color:#f1d08c;font-weight:800;white-space:nowrap}
+.penalty-conversion-details{display:grid;gap:6px;margin:0;padding-left:18px;color:#fff0c5;font:600 12px/1.45 var(--sans)}
+.penalty-conversion-details li::marker{color:#e8c77e}
+@media(max-width:620px){.standings-tooltip-popover.has-penalty-conversion{padding:13px 13px}.penalty-conversion-table{font-size:11px}.penalty-conversion-table thead th{padding:7px 5px;font-size:10px}.penalty-conversion-table tbody th,.penalty-conversion-table tbody td{padding:6px 5px}.penalty-conversion-details{font-size:11px}}

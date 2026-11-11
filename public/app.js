@@ -238,11 +238,55 @@ function prizeBreakdownSection() {
     : `<div class="prize-breakdown-pending"><span class="prize-pending-icon" aria-hidden="true">£</span><div><strong>Prize breakdown graphic</strong><p>The source graphic has not been added to the project yet. Its prize categories and amounts are not transcribed or estimated.</p></div></div>`;
   return `<section class="prize-breakdown-section" id="prize-breakdown" aria-labelledby="prize-breakdown-title"><div class="prize-breakdown-heading"><div><span class="opening-kicker">PENROSE CUP · PRIZE POOL</span><h2 id="prize-breakdown-title">Prize <em>breakdown</em></h2></div><strong class="prize-breakdown-total">${esc(prizePoolTotal())} total</strong></div>${graphic}</section>`;
 }
-function standingsHeading(label, explanation, tooltipTitle = "", infoIcon = false) {
+function standingsHeading(label, explanation, tooltipTitle = "", infoIcon = false, tooltipKind = "") {
   const accessibleText = tooltipTitle ? `${tooltipTitle}. ${explanation}` : `${label}: ${explanation}`;
   const titleAttribute = tooltipTitle ? ` data-tooltip-title="${esc(tooltipTitle)}"` : "";
+  const kindAttribute = tooltipKind ? ` data-tooltip-kind="${esc(tooltipKind)}"` : "";
   const icon = infoIcon ? '<span class="standings-tooltip-icon" aria-hidden="true">ⓘ</span>' : "";
-  return `<th><button class="standings-tooltip-trigger${infoIcon ? " has-info-icon" : ""}" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}"${titleAttribute}>${esc(label)}${icon}</button></th>`;
+  return `<th><button class="standings-tooltip-trigger${infoIcon ? " has-info-icon" : ""}" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}"${titleAttribute}${kindAttribute}>${esc(label)}${icon}</button></th>`;
+}
+const PP_TOOLTIP_TITLE = "PP — Converted Time Penalties";
+const PP_TOOLTIP_INTRO = "When a driver receives a time penalty from the stewards but has DNF'd, the time penalty is converted into a deduction from their team's championship points.";
+const PP_CONVERSION_ROWS = [
+  ["5 seconds", "−2 points"],
+  ["10 seconds", "−4 to −5 points"],
+  ["15 seconds", "−7 to −10 points"],
+  ["20 seconds", "−13 points or more"],
+  ["More severe penalties", "−15 points or more"],
+];
+const PP_TOOLTIP_DETAILS = [
+  "These deductions affect the team's championship total.",
+  "They do not change the driver's finishing position.",
+  "The actual deduction is determined by the stewards and recorded in Race Director.",
+  "The PP column displays the total deductions recorded against that team.",
+  "Where deductions exceed the team's available points, the championship total cannot fall below zero.",
+];
+const PP_TOOLTIP = `${PP_TOOLTIP_INTRO}\n\nPenalty conversion table: ${PP_CONVERSION_ROWS.map((row) => `${row[0]}: ${row[1]}`).join("; ")}\n\n${PP_TOOLTIP_DETAILS.join(" ")}`;
+const MINIMUM_POINTS_TITLE = "Minimum Points Rule";
+const MINIMUM_POINTS_EXPLANATION = "This team has received point deductions exceeding its available championship points. Championship totals cannot fall below zero, so the displayed total is capped at 0. The full deduction remains recorded.";
+function uncappedPointsTotal(team, group) {
+  const points = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const dc = group === "Group B" ? points(team.driverComplianceDeductions) : 0;
+  return points(team.race1Points) + points(team.race2Points) - points(team.ppDeductions) - dc;
+}
+function minimumPointsTooltip(team, group) {
+  const points = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const pp = points(team.ppDeductions);
+  const dc = group === "Group B" ? points(team.driverComplianceDeductions) : 0;
+  const uncapped = uncappedPointsTotal(team, group);
+  const format = (value) => Math.abs(value).toLocaleString("en-GB");
+  const signed = uncapped < 0 ? `−${format(uncapped)}` : format(uncapped);
+  const details = group === "Group B"
+    ? `Recorded deductions: PP ${format(pp)} points; DC ${format(dc)} points.`
+    : `Recorded deductions: PP ${format(pp)} points.`;
+  return `${MINIMUM_POINTS_EXPLANATION}\n\n${details}\nUncapped calculated total: ${signed} points.`;
+}
+function minimumPointsIcon(team, group) {
+  const total = Number(team.totalPoints);
+  if (team.totalPoints == null || !Number.isFinite(total) || total > 0) return "";
+  const explanation = minimumPointsTooltip(team, group);
+  const accessibleText = `${MINIMUM_POINTS_TITLE}. ${explanation}`;
+  return `<button class="standings-tooltip-trigger total-minimum-rule-trigger" type="button" aria-expanded="false" aria-label="${esc(accessibleText)}" data-tooltip="${esc(explanation)}" data-tooltip-title="${esc(MINIMUM_POINTS_TITLE)}"><span class="standings-tooltip-icon" aria-hidden="true">ⓘ</span></button>`;
 }
 const DC_TOOLTIP_TITLE = "DC — Driver Compliance Deduction";
 const DC_TOOLTIP = `The four drivers who raced for a team in the Week 1 Placement Round become that team's Original Placement Drivers for the remainder of the Penrose Cup.
@@ -284,16 +328,56 @@ function showStandingsTooltip(button) {
   }
   activeStandingsTooltip.button = button;
   const title = button.dataset.tooltipTitle || "";
+  const tooltipKind = button.dataset.tooltipKind || "";
   const explanation = button.dataset.tooltip || button.getAttribute("aria-label") || "";
   activeStandingsTooltip.node.replaceChildren();
+  activeStandingsTooltip.node.classList.toggle("has-penalty-conversion", tooltipKind === "pp-conversion");
   if (title) {
     const heading = document.createElement("strong");
     heading.className = "standings-tooltip-title";
     heading.textContent = title;
-    const body = document.createElement("span");
-    body.className = "standings-tooltip-copy";
-    body.textContent = explanation;
-    activeStandingsTooltip.node.append(heading, body);
+    activeStandingsTooltip.node.append(heading);
+    if (tooltipKind === "pp-conversion") {
+      const intro = document.createElement("p");
+      intro.className = "standings-tooltip-copy penalty-conversion-intro";
+      intro.textContent = PP_TOOLTIP_INTRO;
+      const table = document.createElement("table");
+      table.className = "penalty-conversion-table";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      for (const label of ["Original Time Penalty", "Team Points Deduction"]) {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        headerRow.append(cell);
+      }
+      thead.append(headerRow);
+      const tbody = document.createElement("tbody");
+      for (const [penalty, deduction] of PP_CONVERSION_ROWS) {
+        const row = document.createElement("tr");
+        const penaltyCell = document.createElement("th");
+        penaltyCell.scope = "row";
+        penaltyCell.textContent = penalty;
+        const deductionCell = document.createElement("td");
+        deductionCell.textContent = deduction;
+        row.append(penaltyCell, deductionCell);
+        tbody.append(row);
+      }
+      table.append(thead, tbody);
+      const details = document.createElement("ul");
+      details.className = "penalty-conversion-details";
+      for (const detail of PP_TOOLTIP_DETAILS) {
+        const item = document.createElement("li");
+        item.textContent = detail;
+        details.append(item);
+      }
+      activeStandingsTooltip.node.append(intro, table, details);
+    } else {
+      const body = document.createElement("span");
+      body.className = "standings-tooltip-copy";
+      body.textContent = explanation;
+      activeStandingsTooltip.node.append(body);
+    }
   } else {
     activeStandingsTooltip.node.textContent = explanation;
   }
@@ -380,11 +464,17 @@ function groupStageStandings(group) {
       return `<td class="${className}">${amount > 0 ? `−${amount.toLocaleString("en-GB")}` : "—"}</td>`;
     };
     const complianceCell = groupB ? deductionCell(team.driverComplianceDeductions, "compliance-deduction-points") : "";
-    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td>${deductionCell(team.ppDeductions, "pp-deduction-points")}${complianceCell}<td class="lap-time">${team.totalPoints == null ? "—" : Number(team.totalPoints).toLocaleString("en-GB")}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="${columnCount}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
+    const numericTotal = team.totalPoints == null ? null : Number(team.totalPoints);
+    const displayTotal = numericTotal == null || !Number.isFinite(numericTotal) ? null : Math.max(0, numericTotal);
+    const totalText = displayTotal == null ? "—" : displayTotal.toLocaleString("en-GB");
+    const cappedIcon = displayTotal === 0 && uncappedPointsTotal(team, group) < 0
+      ? minimumPointsIcon({ ...team, totalPoints: 0 }, group)
+      : "";
+    const row = `${zoneHeading}${dropZoneHeading}<tr class="${classes}"><td class="rank">${esc(pos)}</td><td class="group-team-name">${teamNameMarkup(team.name, team.key)}</td><td>${team.race1Points == null ? "—" : Number(team.race1Points).toLocaleString("en-GB")}</td><td>${team.race2Points == null ? "—" : Number(team.race2Points).toLocaleString("en-GB")}</td>${deductionCell(team.ppDeductions, "pp-deduction-points")}${complianceCell}<td class="lap-time">${totalText}${cappedIcon}</td></tr>${boundary.lineAfter === index + 1 ? `<tr class="elimination-divider${boundary.dropZoneLabel ? " drop-zone-divider" : ""}"><td colspan="${columnCount}"><span class="qualification-rule"></span><strong>${esc(boundary.label)}</strong>${boundary.confirmed ? `<small> · BOTTOM ${standings.teams.length - boundary.cutoff} ELIMINATED</small>` : ""}</td></tr>` : ""}`;
     return row;
   }).join("");
   const tieMessage = boundary.tie ? `<p class="group-stage-alert">Tie at the qualification cutoff; qualification is undecided.</p>` : "";
-  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", "Converted Time Penalty — This penalty is issued when a driver DNFs but receives a time penalty from the stewards. The time penalty is converted into a championship points deduction.", "", true)}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
+  const headers = `${standingsHeading("R1", "Group Race 1 Points")}${standingsHeading("R2", "Group Race 2 Points")}${standingsHeading("PP", PP_TOOLTIP, PP_TOOLTIP_TITLE, true, "pp-conversion")}${groupB ? standingsHeading("DC", DC_TOOLTIP, DC_TOOLTIP_TITLE, true) : ""}${standingsHeading("TOTAL", "Total Championship Points After Deductions")}`;
   return `<section class="group-stage-section"><div class="group-standings-heading"><h2>${esc(group.toUpperCase())} — STANDINGS</h2><span class="group-stage-status">${esc(standings.stageStatus)}</span></div><div class="elimination-notice"><span class="elimination-notice-icon" aria-hidden="true">↘</span><strong>${esc(eliminationNotice)}</strong><small>${esc(eliminationStatus)}</small></div><div class="group-race-statuses"><span>R1 <strong>${esc(standings.race1Status)}</strong></span><span>R2 <strong>${esc(standings.race2Status)}</strong></span></div>${tieMessage}<div class="group-standings-card${groupB ? " group-b-standings-card" : ""}"><table class="group-standings-table${groupB ? " group-b-standings-table" : ""}"><colgroup><col class="position-column"><col class="team-column"><col class="points-column"><col class="points-column"><col class="deduction-column">${groupB ? '<col class="compliance-column">' : ""}<col class="total-column"></colgroup><thead><tr><th>POS</th><th>TEAM</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function noStageResultsStats(selected) {
